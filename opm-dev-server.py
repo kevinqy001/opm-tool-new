@@ -3,7 +3,7 @@
 Serve html_new static files and proxy /gcmatch/* → GC Match API (fixes browser CORS).
 
   python opm-dev-server.py
-  # open http://127.0.0.1:8765/opm-opm.html
+  # open http://127.0.0.1:8765/index.html
 """
 from __future__ import annotations
 
@@ -121,7 +121,7 @@ def main() -> None:
     os.chdir(ROOT)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), OpmDevHandler)
     print(f"Serving {ROOT}")
-    print(f"  UI:    http://127.0.0.1:{PORT}/opm-opm.html")
+    print(f"  UI:    http://127.0.0.1:{PORT}/index.html")
     print(f"  Proxy: http://127.0.0.1:{PORT}{PROXY_PREFIX}/ → {GCMATCH_UPSTREAM}")
     try:
         server.serve_forever()

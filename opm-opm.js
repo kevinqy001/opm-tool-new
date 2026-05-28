@@ -541,7 +541,7 @@
           alertEl,
           "error",
           err.message === "Failed to fetch"
-            ? "Could not reach the GC Match API. Start the local dev server (python opm-dev-server.py) and open http://127.0.0.1:8765/opm-opm.html — do not open the HTML file directly. See opm-config.js GCMATCH_USE_SAME_ORIGIN_PROXY."
+            ? "Could not reach the GC Match API. Start the local dev server (python opm-dev-server.py) and open http://127.0.0.1:8765/index.html — do not open the HTML file directly. See opm-config.js GCMATCH_USE_SAME_ORIGIN_PROXY."
             : `Network error: ${err.message}`
         );
       } finally {

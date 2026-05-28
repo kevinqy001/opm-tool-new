@@ -290,7 +290,7 @@ The OPM page **already uses** `POST /recommend_from_ticket`. There is no separat
 | **Path** | `/recommend_from_ticket` |
 | **Client** | `OpmApiClient.recommendFromTicket(queryText, topN)` |
 | **Trigger** | User submits **Get Recommendation** |
-| **Page** | `opm-opm.html` |
+| **Page** | `index.html` |
 
 #### Request Body
 
@@ -415,7 +415,7 @@ Used on the OPM page:
 
 | Page | HTML | JS | Preload | On-demand |
 |------|------|-----|---------|-----------|
-| **OPM** | `opm-opm.html` | `opm-opm.js` | — | `POST /recommend_from_ticket` |
+| **OPM** | `index.html` | `opm-opm.js` | — | `POST /recommend_from_ticket` |
 | **Search History** | `opm-saved-drafts.html` | `opm-saved-drafts.js` | — | Client filter on `localStorage` history (no API on Search) |
 | **Series Coverage** | `opm-series-coverage.html` | `opm-series-coverage.js` | `GET /series` | `GET /productCategories`; `GET /series?product_category=`; `POST /searchParts` (category + series) |
 
