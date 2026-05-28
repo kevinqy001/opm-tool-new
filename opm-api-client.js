@@ -147,7 +147,7 @@
       return (
         "The API could not find this part or series in the GC Match database. " +
         "Your input format is fine — try a part number known to work on this environment, " +
-        "for example: Need replacement for 20010001497ORF"
+        "for example: Need replacement for 2671001wb111kcd"
       );
     }
 

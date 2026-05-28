@@ -67,6 +67,18 @@
     });
   }
 
+  /** Rebuild options but keep the current value when it still exists (async refresh safe). */
+  function fillSelectPreserve(select, items, placeholder) {
+    if (!select) return false;
+    const previous = select.value;
+    fillSelect(select, items, placeholder);
+    if (previous && items.some((item) => item.value === previous)) {
+      select.value = previous;
+      return true;
+    }
+    return false;
+  }
+
   function parseCategoriesResponse(data) {
     if (!data) return [];
     if (Array.isArray(data.Categories)) {
@@ -236,7 +248,7 @@
     lastDataSource = source;
   }
 
-  function initProductFilters(onFilterChange) {
+  function initProductFilters(onFilterChange, onPartsLoaded) {
     const categorySelect = document.getElementById("series-filter-category");
     const seriesSelect = document.getElementById("series-filter-series");
     const partSelect = document.getElementById("series-filter-part");
@@ -245,6 +257,31 @@
 
     if (!categorySelect || !seriesSelect || !partSelect || !cache || !api) {
       return;
+    }
+
+    if (categorySelect.dataset.opmFiltersBound === "1") {
+      return;
+    }
+    categorySelect.dataset.opmFiltersBound = "1";
+
+    let suppressFilterChange = false;
+    let categoriesLoadId = 0;
+    let seriesLoadId = 0;
+    let partsLoadId = 0;
+    let loadedSeriesCategory = "";
+    let loadedPartsKey = "";
+
+    function withSuppressedFilterChange(fn) {
+      suppressFilterChange = true;
+      try {
+        fn();
+      } finally {
+        suppressFilterChange = false;
+      }
+    }
+
+    function notifyFilterChange() {
+      if (!suppressFilterChange) onFilterChange();
     }
 
     clearSelect(categorySelect, "Loading categories…");
@@ -257,7 +294,9 @@
       const items = names
         .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
         .map((name) => ({ value: name, label: name }));
-      fillSelect(categorySelect, items, CAT_PLACEHOLDER);
+      withSuppressedFilterChange(() => {
+        fillSelectPreserve(categorySelect, items, CAT_PLACEHOLDER);
+      });
     }
 
     async function fetchCategoriesFromApi() {
@@ -273,11 +312,12 @@
 
     async function loadCategories() {
       const key = cache.cacheKey("categories");
+      const loadId = ++categoriesLoadId;
 
       try {
         await cache.staleWhileRevalidate(key, fetchCategoriesFromApi, {
           onData(names, fromCache) {
-            if (!names?.length) return;
+            if (loadId !== categoriesLoadId || !names?.length) return;
             fillCategoryDropdown(names);
             categoriesRefreshHint = fromCache
               ? "categories from cache; refreshing…"
@@ -288,12 +328,15 @@
         });
       } catch (err) {
         console.error(err);
+        if (loadId !== categoriesLoadId) return;
         const fallback = cache.get(key);
         if (fallback?.length) {
           fillCategoryDropdown(fallback);
           setHintExtra("categories from cache (API unavailable)");
         } else {
-          clearSelect(categorySelect, "Categories unavailable");
+          withSuppressedFilterChange(() => {
+            clearSelect(categorySelect, "Categories unavailable");
+          });
         }
       }
     }
@@ -309,26 +352,49 @@
       return normalizeSeriesRows(res.data);
     }
 
+    function seriesItemsFromRows(rows) {
+      return rows
+        .map((row) => ({
+          value: row.series_name,
+          label: row.series_name,
+        }))
+        .sort((a, b) =>
+          a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+        );
+    }
+
     async function loadSeriesForCategory(category) {
-      clearSelect(seriesSelect, "Loading series…");
-      seriesSelect.disabled = true;
-      clearSelect(partSelect, PART_PLACEHOLDER);
-      partSelect.disabled = true;
+      const loadId = ++seriesLoadId;
+      const categoryChanged = category !== loadedSeriesCategory;
 
       if (!category) {
-        clearSelect(seriesSelect, SERIES_PLACEHOLDER);
+        loadedSeriesCategory = "";
+        withSuppressedFilterChange(() => {
+          clearSelect(seriesSelect, SERIES_PLACEHOLDER);
+          seriesSelect.disabled = true;
+          clearSelect(partSelect, PART_PLACEHOLDER);
+          partSelect.disabled = true;
+        });
         return;
+      }
+
+      if (categoryChanged) {
+        loadedSeriesCategory = category;
+        withSuppressedFilterChange(() => {
+          clearSelect(seriesSelect, "Loading series…");
+          seriesSelect.disabled = true;
+          clearSelect(partSelect, PART_PLACEHOLDER);
+          partSelect.disabled = true;
+        });
       }
 
       const mem = seriesRowsByCategory.get(category);
       if (mem?.length) {
-        const items = mem
-          .map((row) => ({ value: row.series_name, label: row.series_name }))
-          .sort((a, b) =>
-            a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
-          );
-        fillSelect(seriesSelect, items, SERIES_PLACEHOLDER);
-        seriesSelect.disabled = false;
+        const items = seriesItemsFromRows(mem);
+        withSuppressedFilterChange(() => {
+          fillSelectPreserve(seriesSelect, items, SERIES_PLACEHOLDER);
+          seriesSelect.disabled = false;
+        });
       }
 
       const key = cache.cacheKey("series", category);
@@ -336,8 +402,14 @@
       try {
         await cache.staleWhileRevalidate(key, () => fetchSeriesFromApi(category), {
           onData(rows, fromCache) {
+            if (loadId !== seriesLoadId) return;
+            if (categorySelect.value !== category) return;
+
             if (!rows?.length && !mem?.length) {
-              clearSelect(seriesSelect, "No series found");
+              withSuppressedFilterChange(() => {
+                clearSelect(seriesSelect, "No series found");
+                seriesSelect.disabled = true;
+              });
               return;
             }
             if (rows?.length) {
@@ -346,30 +418,27 @@
                 rows,
                 fromCache ? "cache" : "cache-refreshed"
               );
-              const items = rows
-                .map((row) => ({
-                  value: row.series_name,
-                  label: row.series_name,
-                }))
-                .sort((a, b) =>
-                  a.label.localeCompare(b.label, undefined, {
-                    sensitivity: "base",
-                  })
-                );
-              fillSelect(seriesSelect, items, SERIES_PLACEHOLDER);
-              seriesSelect.disabled = false;
+              const items = seriesItemsFromRows(rows);
+              withSuppressedFilterChange(() => {
+                fillSelectPreserve(seriesSelect, items, SERIES_PLACEHOLDER);
+                seriesSelect.disabled = false;
+              });
             }
           },
         });
       } catch (err) {
         console.error(err);
+        if (loadId !== seriesLoadId || categorySelect.value !== category) return;
         if (!mem?.length) {
-          clearSelect(
-            seriesSelect,
-            err.message?.includes("timed out")
-              ? "Series load timed out"
-              : "Series unavailable"
-          );
+          withSuppressedFilterChange(() => {
+            clearSelect(
+              seriesSelect,
+              err.message?.includes("timed out")
+                ? "Series load timed out"
+                : "Series unavailable"
+            );
+            seriesSelect.disabled = true;
+          });
         }
       }
     }
@@ -378,33 +447,72 @@
       const res = await api.getPartNumbers(category, seriesName, {
         timeoutMs: 90000,
       });
-      if (!res.ok) {
-        if (res.timedOut) throw new Error(api.formatApiError(res));
+      if (res.ok) {
+        const fromGet = normalizePartsFromResponse(res.data);
+        if (fromGet.length) return fromGet;
+      } else if (res.timedOut) {
+        throw new Error(api.formatApiError(res));
+      }
+
+      const fallback = await api.searchParts(
+        { product_category: category, product_series: seriesName },
+        { timeoutMs: 90000 }
+      );
+      if (!fallback.ok) {
+        if (res.ok) return [];
+        if (fallback.timedOut) throw new Error(api.formatApiError(fallback));
         throw new Error(
-          res.data?.detail || res.data?.message || `HTTP ${res.status}`
+          fallback.data?.detail ||
+            fallback.data?.message ||
+            res.data?.detail ||
+            res.data?.message ||
+            `HTTP ${fallback.status}`
         );
       }
-      return normalizePartsFromResponse(res.data);
+      return normalizePartsFromResponse(fallback.data);
     }
 
     async function loadPartsForSeries(category, seriesName) {
-      clearSelect(partSelect, "Loading part numbers…");
-      partSelect.disabled = true;
+      const loadId = ++partsLoadId;
+      const pk = partsKey(category, seriesName);
+      const partsTargetChanged = pk !== loadedPartsKey;
 
       if (!category || !seriesName) {
-        clearSelect(partSelect, PART_PLACEHOLDER);
+        loadedPartsKey = "";
+        withSuppressedFilterChange(() => {
+          clearSelect(partSelect, PART_PLACEHOLDER);
+          partSelect.disabled = true;
+        });
         return;
+      }
+
+      if (partsTargetChanged) {
+        loadedPartsKey = pk;
+        withSuppressedFilterChange(() => {
+          clearSelect(partSelect, "Loading part numbers…");
+          partSelect.disabled = true;
+        });
       }
 
       const key = cache.cacheKey("parts", category, seriesName);
       const limit = partsLimit();
-      const pk = partsKey(category, seriesName);
 
       function applyPartList(parts, fromCache) {
+        if (loadId !== partsLoadId) return;
+        if (
+          categorySelect.value !== category ||
+          seriesSelect.value !== seriesName
+        ) {
+          return;
+        }
+
         applyPartsRows(category, seriesName, parts, fromCache ? "cache" : "api");
 
         if (!parts.length) {
-          clearSelect(partSelect, "No part numbers in this series");
+          withSuppressedFilterChange(() => {
+            clearSelect(partSelect, "No part numbers in this series");
+            partSelect.disabled = true;
+          });
           return;
         }
         const slice = parts.slice(0, limit);
@@ -416,11 +524,14 @@
         if (parts.length > limit) {
           placeholder = `First ${limit} of ${parts.length} part numbers…`;
         }
-        fillSelect(partSelect, items, placeholder);
-        partSelect.disabled = false;
+        withSuppressedFilterChange(() => {
+          fillSelectPreserve(partSelect, items, placeholder);
+          partSelect.disabled = false;
+        });
         if (parts.length > limit && fromCache === false) {
           setHintExtra(`part number dropdown capped at ${limit}`);
         }
+        onPartsLoaded?.();
       }
 
       const cached = normalizeCachedParts(cache.get(key));
@@ -434,25 +545,45 @@
           () => fetchPartsFromApi(category, seriesName),
           {
             onData(parts, fromCache) {
+              if (loadId !== partsLoadId) return;
+              if (
+                categorySelect.value !== category ||
+                seriesSelect.value !== seriesName
+              ) {
+                return;
+              }
               const normalized = normalizeCachedParts(parts);
               if (normalized.length) {
                 applyPartList(normalized, fromCache);
               } else if (!cached.length) {
                 partsByCategorySeries.delete(pk);
-                clearSelect(partSelect, "No part numbers found");
+                withSuppressedFilterChange(() => {
+                  clearSelect(partSelect, "No part numbers found");
+                  partSelect.disabled = true;
+                });
               }
             },
           }
         );
       } catch (err) {
         console.error(err);
+        if (loadId !== partsLoadId) return;
+        if (
+          categorySelect.value !== category ||
+          seriesSelect.value !== seriesName
+        ) {
+          return;
+        }
         if (!cached.length) {
-          clearSelect(
-            partSelect,
-            err.message?.includes("timed out")
-              ? "Part numbers load timed out"
-              : "Part numbers unavailable"
-          );
+          withSuppressedFilterChange(() => {
+            clearSelect(
+              partSelect,
+              err.message?.includes("timed out")
+                ? "Part numbers load timed out"
+                : "Part numbers unavailable"
+            );
+            partSelect.disabled = true;
+          });
         }
       }
     }
@@ -460,28 +591,46 @@
     loadCategories();
 
     categorySelect.addEventListener("change", () => {
+      if (suppressFilterChange) return;
       const category = categorySelect.value;
-      seriesSelect.value = "";
-      partSelect.value = "";
+      withSuppressedFilterChange(() => {
+        seriesSelect.value = "";
+        partSelect.value = "";
+      });
       loadSeriesForCategory(category);
-      onFilterChange();
+      notifyFilterChange();
     });
 
     seriesSelect.addEventListener("change", () => {
+      if (suppressFilterChange) return;
       const category = categorySelect.value;
       const seriesName = seriesSelect.value;
-      partSelect.value = "";
+      withSuppressedFilterChange(() => {
+        partSelect.value = "";
+      });
       loadPartsForSeries(category, seriesName);
-      onFilterChange();
+      notifyFilterChange();
     });
 
-    partSelect.addEventListener("change", onFilterChange);
+    partSelect.addEventListener("change", () => {
+      if (suppressFilterChange) return;
+      const searchInput = document.getElementById("series-search");
+      const pn = partSelect.value;
+      if (searchInput) {
+        searchInput.value = pn || "";
+      }
+      notifyFilterChange();
+    });
   }
 
   function init() {
     const searchInput = document.getElementById("series-search");
-    const form = searchInput?.closest("form");
-    const searchBtn = form?.querySelector('button[type="submit"]');
+    const form =
+      document.getElementById("series-search-form") ||
+      searchInput?.closest("form");
+    const searchBtn =
+      document.getElementById("series-search-btn") ||
+      form?.querySelector('button[type="submit"]');
 
     let hasSearched = false;
 
@@ -518,12 +667,19 @@
       }
 
       let term = searchInput?.value ?? "";
-      if (partNumber && !term.trim()) {
+      const termTrimmed = term.trim();
+      const usePartFilter = Boolean(partNumber && !termTrimmed);
+
+      if (usePartFilter) {
         term = partNumber;
         if (searchInput) searchInput.value = partNumber;
       }
 
-      const filtered = filterPartRows(parts, term, partNumber || null);
+      const filtered = filterPartRows(
+        parts,
+        term,
+        usePartFilter ? partNumber : null
+      );
       renderTable(filtered, term, { category, seriesName, partNumber });
     }
 
@@ -535,7 +691,12 @@
       if (!parts.length) return;
 
       const term = searchInput?.value ?? "";
-      const rows = filterPartRows(parts, term, partNumber || null);
+      const usePartFilter = Boolean(partNumber && !term.trim());
+      const rows = filterPartRows(
+        parts,
+        usePartFilter ? partNumber : term,
+        usePartFilter ? partNumber : null
+      );
       const csv = [
         "Part Number,Status",
         ...rows.map(
@@ -551,9 +712,14 @@
       URL.revokeObjectURL(a.href);
     }
 
-    initProductFilters(() => {
-      if (hasSearched) runSearch();
-    });
+    initProductFilters(
+      () => {
+        if (hasSearched) runSearch();
+      },
+      () => {
+        if (hasSearched) runSearch();
+      }
+    );
 
     if (searchInput) searchInput.disabled = false;
     if (searchBtn) searchBtn.disabled = false;
@@ -565,8 +731,17 @@
       runSearch();
     });
 
+    searchBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      runSearch();
+    });
+
     document.getElementById("series-download-btn")?.addEventListener("click", runDownload);
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();

@@ -499,7 +499,7 @@ Tested against production GC Match (2026-05-21). Latency varies with load.
 | `POST /searchParts` (`20010001497ORF`) | 404 | ~2s | `No parts found` |
 | `POST /recommend_from_ticket` | 200 | ~65s | 3 recommendations for demo text |
 
-**Demo part for OPM:** `Need replacement for 20010001497ORF`
+**Demo part for OPM:** `Need replacement for 2671001wb111kcd` (verified: returns 3 recommendations)
 
 ---
 

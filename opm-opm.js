@@ -517,11 +517,26 @@
         }
 
         if (!body?.recommendations?.length) {
+          const recognized = body?.requested_part_number;
           showMessage(
             alertEl,
             "warning",
-            "No recommendations were returned for this request."
+            recognized
+              ? `No replacement recommendations were found for “${recognized}”. The service recognized your part number but returned an empty recommendation list — this usually means no suitable matches exist in the GC Match catalog for this part, or the model could not rank alternatives. You can still open the requested-part datasheet below if available.`
+              : "No recommendations were returned for this request."
           );
+          if (recognized || body?.datasheet_pdf_requested) {
+            lastData = body;
+            window.OpmRecentQueries?.add(queryText, { response: body });
+            selectedIndex = 0;
+            specViewLevel = "top10";
+            resultsRoot.innerHTML = renderResults(
+              body,
+              selectedIndex,
+              queryText
+            );
+            bindResultInteractions();
+          }
           return;
         }
 
