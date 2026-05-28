@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Obsolete Part Matching — Series Coverage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="opm-shared.css" />
+</head>
+<body class="opm-app" data-opm-page="series-coverage">
+  <div class="opm-shell">
+    <aside class="opm-sidebar" aria-label="Main navigation">
+      <div class="opm-logo">
+        <img class="opm-logo__img" src="assets/gems-setra-logo.png?v=2" alt="Gems Setra" />
+      </div>
+      <nav>
+        <ul class="opm-nav">
+          <li class="opm-nav__item">
+            <a class="opm-nav__link" href="opm-opm.html">OPM</a>
+          </li>
+          <li class="opm-nav__item">
+            <a class="opm-nav__link" href="opm-saved-drafts.html">Search History</a>
+          </li>
+          <li class="opm-nav__item">
+            <a class="opm-nav__link is-active" href="opm-series-coverage.html" aria-current="page">Series Coverage</a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="opm-main">
+      <header class="opm-header">
+        <h1 class="opm-header__title">Obsolete Part Matching</h1>
+        <div class="opm-header__contact">
+          <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
+          <span>Call us at +1-800-378-1600</span>
+        </div>
+      </header>
+
+      <main class="opm-content">
+        <section aria-label="Series coverage">
+          <form id="series-search-form" class="opm-search-row" action="#" method="get">
+            <label for="series-search" class="visually-hidden">Part number</label>
+            <input
+              id="series-search"
+              class="opm-input"
+              type="search"
+              name="partNumber"
+              placeholder="Filter part numbers in selected series…"
+              autocomplete="off"
+            />
+            <button type="submit" id="series-search-btn" class="opm-btn">
+              Search
+            </button>
+          </form>
+
+          <div class="opm-series-filters opm-browse__steps" aria-label="Product filters">
+            <div class="opm-browse__step">
+              <label class="opm-field__label" for="series-filter-category">Product Category</label>
+              <select
+                id="series-filter-category"
+                class="opm-select"
+                name="productCategory"
+                data-filter-level="category"
+              ></select>
+            </div>
+            <div class="opm-browse__step">
+              <label class="opm-field__label" for="series-filter-series">Product Series</label>
+              <select
+                id="series-filter-series"
+                class="opm-select"
+                name="productSeries"
+                data-filter-level="series"
+                disabled
+              ></select>
+            </div>
+            <div class="opm-browse__step">
+              <label class="opm-field__label" for="series-filter-part">Part Number</label>
+              <select
+                id="series-filter-part"
+                class="opm-select"
+                name="partNumber"
+                data-filter-level="part"
+                disabled
+              ></select>
+            </div>
+          </div>
+
+          <div class="opm-toolbar">
+            <p class="opm-toolbar__hint">
+              Download the part number list shown in the table (run Search first)
+            </p>
+            <button type="button" id="series-download-btn" class="opm-btn">Download Excel</button>
+          </div>
+
+          <p id="series-data-source" class="opm-toolbar__hint" style="margin: 0 0 12px;"></p>
+
+          <div class="opm-table-wrap">
+            <table class="opm-table opm-table--equal-cols">
+              <thead>
+                <tr>
+                  <th scope="col">Part Number</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="2" class="opm-table__empty">Select product category and series, then click Search.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="opm-config.js"></script>
+  <script src="opm-api-cache.js"></script>
+  <script src="opm-api-client.js"></script>
+  <script src="opm-series-coverage.js"></script>
+</body>
+</html>

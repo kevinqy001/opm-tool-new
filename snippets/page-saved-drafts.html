@@ -1,0 +1,30 @@
+﻿<!-- 页面 2：Saved Drafts — 按料号搜索 + Requested / Recommended -->
+<section aria-label="Saved drafts search">
+  <form class="opm-search-row" action="#" method="get" onsubmit="return false;">
+    <label for="draft-part-number" class="visually-hidden">Part number</label>
+    <input
+      id="draft-part-number"
+      class="opm-input"
+      type="search"
+      name="partNumber"
+      placeholder="Enter Part Number"
+      autocomplete="off"
+    />
+    <button type="submit" class="opm-btn">Search</button>
+  </form>
+
+  <div class="opm-results-header">
+    <div class="opm-results-header__col">Requested</div>
+    <div class="opm-results-header__col">Recommended</div>
+  </div>
+
+  <div class="opm-results-body" aria-label="Draft comparison results">
+    <!-- 动态插入左右两列对比内容 -->
+  </div>
+
+  <nav class="opm-pagination" aria-label="Draft results pagination">
+    <button type="button" class="opm-btn" disabled>Prev</button>
+    <span class="opm-pagination__info" aria-live="polite">1 / 1</span>
+    <button type="button" class="opm-btn" disabled>Next</button>
+  </nav>
+</section>

@@ -1,0 +1,31 @@
+<!-- 页面 4：Browse by Products — 三级联动 + 结果区 -->
+<section class="opm-browse" aria-label="Browse by products">
+  <div class="opm-browse__picker">
+    <h2 class="opm-browse__heading">Product Selection</h2>
+    <div class="opm-browse__steps">
+      <div class="opm-browse__step">
+        <span class="opm-browse__step-num">Step 1</span>
+        <label class="opm-field__label" for="browse-category">Product Category</label>
+        <select id="browse-category" class="opm-select" name="productCategory" data-browse-level="category"></select>
+      </div>
+      <div class="opm-browse__step">
+        <span class="opm-browse__step-num">Step 2</span>
+        <label class="opm-field__label" for="browse-series">Product Series</label>
+        <select id="browse-series" class="opm-select" name="productSeries" data-browse-level="series" disabled></select>
+      </div>
+      <div class="opm-browse__step">
+        <span class="opm-browse__step-num">Step 3</span>
+        <label class="opm-field__label" for="browse-part">Part Number</label>
+        <select id="browse-part" class="opm-select" name="partNumber" data-browse-level="part" disabled></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="opm-browse__results">
+    <h2 class="opm-browse__heading">Results</h2>
+    <div id="browse-results-body" class="opm-browse__results-body" role="region" aria-live="polite">
+      <p class="opm-browse__empty">Select a product category, series, and part number to view details.</p>
+    </div>
+  </div>
+</section>
+<!-- 需配合 opm-browse-products.js 与 main.opm-content--browse -->

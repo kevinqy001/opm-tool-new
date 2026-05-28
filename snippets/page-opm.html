@@ -1,0 +1,86 @@
+﻿<!-- 页面 1：OPM 主界面 — 输入 part number / replacement request -->
+<section class="opm-panel" aria-label="Get recommendation">
+  <form id="opm-main-form" class="opm-search-row" action="#" method="post" onsubmit="return false;">
+    <label for="opm-query-input" class="visually-hidden">Part number or search text</label>
+    <textarea
+      id="opm-query-input"
+      class="opm-textarea"
+      name="queryContent"
+      placeholder="e.g. Need replacement for 20010001497ORF"
+      rows="5"
+    ></textarea>
+    <button type="submit" class="opm-btn">Get Recommendation</button>
+  </form>
+</section>
+
+<!--
+  筛选器：当前为 demo 静态选项；接入 API 后可用 JS 重写各 select 的 option
+  示例：document.getElementById('filter-application-type') ...
+-->
+<section class="opm-filters" aria-label="Filters" data-filters-dynamic="true">
+  <div class="opm-filters__grid">
+    <div class="opm-field">
+      <label class="opm-field__label" for="filter-application-type">Application Type</label>
+      <select
+        id="filter-application-type"
+        class="opm-select"
+        name="applicationType"
+        data-filter="applicationType"
+      >
+        <option value="">Select application type…</option>
+        <option value="hvac">HVAC &amp; Building Automation</option>
+        <option value="industrial">Industrial Process &amp; OEM</option>
+        <option value="medical">Medical &amp; Life Sciences</option>
+        <option value="semiconductor">Semiconductor &amp; Cleanroom</option>
+        <option value="datacenter">Data Center Environmental Monitoring</option>
+        <option value="water">Water &amp; Wastewater Treatment</option>
+        <option value="food">Food &amp; Beverage Processing</option>
+      </select>
+    </div>
+
+    <div class="opm-field">
+      <label class="opm-field__label" for="filter-quantity">Quantity of Units</label>
+      <select
+        id="filter-quantity"
+        class="opm-select"
+        name="quantityOfUnits"
+        data-filter="quantityOfUnits"
+      >
+        <option value="">Select quantity range…</option>
+        <option value="1-10">1 – 10 units</option>
+        <option value="11-50">11 – 50 units</option>
+        <option value="51-200">51 – 200 units</option>
+        <option value="201-1000">201 – 1,000 units</option>
+        <option value="1000+">More than 1,000 units</option>
+      </select>
+    </div>
+
+    <div class="opm-field">
+      <label class="opm-field__label" for="filter-product-line">Product Line</label>
+      <select
+        id="filter-product-line"
+        class="opm-select"
+        name="productLine"
+        data-filter="productLine"
+      >
+        <option value="">Select product line…</option>
+        <optgroup label="Setra">
+          <option value="setra-267">Model 267 — Low Differential Pressure</option>
+          <option value="setra-278">Model 278 — Room Status Monitor</option>
+          <option value="setra-srh">Model SRH — Humidity / Temperature</option>
+          <option value="setra-ashrae">ASHRAE 62.1 IAQ Monitor</option>
+          <option value="setra-model-209">Model 209 — Gauge / Absolute Pressure</option>
+        </optgroup>
+        <optgroup label="Gems Sensors">
+          <option value="gems-3100">3100 Series — Pressure Transducer</option>
+          <option value="gems-rfs">RFS Type — Flow Switch</option>
+          <option value="gems-ls">LS Series — Level Switch</option>
+          <option value="gems-cap3">CAP-3 — Capacitive Level Sensor</option>
+          <option value="gems-rotorflow">RotorFlow — Flow Sensor</option>
+          <option value="gems-xm">XM/XT-800 — Multi-Point Level</option>
+        </optgroup>
+        <option value="other">Other / Unknown Series</option>
+      </select>
+    </div>
+  </div>
+</section>
