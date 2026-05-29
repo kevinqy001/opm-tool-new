@@ -31,6 +31,6 @@ Open `index.html` via that URL (or the repo root if `index.html` is at the root)
 
 ## Notes
 
-- GitHub Pages serves static files only; GC Match API calls go directly to Azure (`opm-config.js` / `opm-api-client.js`).
+- **Local dev:** run `python opm-dev-server.py` → `http://127.0.0.1:8765/index.html` (uses `/gcmatch` proxy).
+- **GitHub Pages:** calls the Azure GC Match API directly; the backend must allow CORS for your Pages origin (e.g. `https://kevinqy001.github.io`).
 - OPM demo query example: `Need replacement for 2671001wb111kcd` (verified to return 3 recommendations).
-- Local dev with API proxy: `python opm-dev-server.py` → `http://127.0.0.1:8765/index.html`

@@ -24,16 +24,15 @@
       return direct;
     }
 
+    // Same-origin /gcmatch proxy only exists on opm-dev-server.py (localhost:8765).
+    // GitHub Pages and other static hosts must call the Azure API directly (CORS).
     if (typeof location !== "undefined") {
-      const onHttp =
-        location.protocol === "http:" || location.protocol === "https:";
-      const useProxy =
-        cfg.GCMATCH_USE_SAME_ORIGIN_PROXY === true ||
-        (onHttp &&
-          (location.hostname === "localhost" ||
-            location.hostname === "127.0.0.1") &&
-          Number(location.port) === (cfg.OPM_DEV_PORT ?? 8765));
-      if (onHttp && useProxy) {
+      const onLocalDev =
+        (location.hostname === "localhost" ||
+          location.hostname === "127.0.0.1") &&
+        Number(location.port) === (cfg.OPM_DEV_PORT ?? 8765);
+
+      if (onLocalDev) {
         return `${location.origin}/gcmatch`;
       }
     }

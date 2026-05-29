@@ -6,7 +6,7 @@ window.OPM_CONFIG = {
   API_BASE_URL: "http://localhost:3050",
   GCMATCH_API_BASE_URL:
     "https://con-gcmatch.blueplant-16804982.westus2.azurecontainerapps.io",
-  /** Route GC Match via opm-dev-server.py (/gcmatch proxy) to avoid browser CORS. */
+  /** Route GC Match via opm-dev-server.py (/gcmatch proxy) on localhost only. */
   GCMATCH_USE_SAME_ORIGIN_PROXY: true,
   OPM_DEV_PORT: 8765,
   TOP_N: 3,
