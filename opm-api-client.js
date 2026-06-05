@@ -212,7 +212,7 @@
       const base = getGcmatchBaseUrl();
       return request(
         "POST",
-        `${base}/recommend_from_ticket`,
+        `${base}/recommend_from_ticket/v3`,
         {
           ticket_text: String(ticketText ?? "").trim(),
           top_n: RECOMMEND_TOP_N,
