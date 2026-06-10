@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 
 BASE = "https://con-gcmatch.blueplant-16804982.westus2.azurecontainerapps.io"
+API_KEY = "15593112-974f-4e39-893f-5a7c5e4756a1"
 TICKET_TEXT = "Need replacement for 209120cpg2m24p1"
 ENDPOINTS = [
     ("v1", "/recommend_from_ticket"),
@@ -26,7 +27,11 @@ def timed_post(path: str, ticket_text: str) -> tuple[float, int, object | None, 
         BASE + path,
         data=body,
         method="POST",
-        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY,
+        },
     )
     t0 = time.perf_counter()
     try:

@@ -10,7 +10,7 @@ window.OPM_CONFIG = {
   GCMATCH_USE_SAME_ORIGIN_PROXY: true,
   OPM_DEV_PORT: 8765,
   TOP_N: 3,
-  API_KEY: "",
+  API_KEY: "15593112-974f-4e39-893f-5a7c5e4756a1",
   USE_MOCK_WHEN_UNAVAILABLE: true,
   /** Default fetch timeout for browse/search APIs (ms) */
   API_TIMEOUT_MS: 45000,

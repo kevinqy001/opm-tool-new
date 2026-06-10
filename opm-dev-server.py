@@ -19,6 +19,10 @@ GCMATCH_UPSTREAM = os.environ.get(
     "GCMATCH_UPSTREAM",
     "https://con-gcmatch.blueplant-16804982.westus2.azurecontainerapps.io",
 ).rstrip("/")
+GCMATCH_API_KEY = os.environ.get(
+    "GCMATCH_API_KEY",
+    "15593112-974f-4e39-893f-5a7c5e4756a1",
+)
 PORT = int(os.environ.get("OPM_DEV_PORT", "8765"))
 PROXY_PREFIX = "/gcmatch"
 
@@ -63,7 +67,7 @@ class OpmDevHandler(SimpleHTTPRequestHandler):
             headers["Content-Type"] = self.headers.get(
                 "Content-Type", "application/json"
             )
-        api_key = self.headers.get("x-api-key")
+        api_key = self.headers.get("x-api-key") or GCMATCH_API_KEY
         if api_key:
             headers["x-api-key"] = api_key
 
