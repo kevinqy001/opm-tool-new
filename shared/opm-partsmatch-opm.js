@@ -98,12 +98,21 @@
     return "top10";
   }
 
-  function renderComparisonTable(data, selectedIndex, { specViewLevel = "top10" } = {}) {
+  function getBreakdownItems(data, selectedIndex) {
     const result = data.results?.[selectedIndex];
     const breakdown = result?.sku_result?.breakdown || [];
-    const visibleItems = breakdown.filter(
+    return breakdown.filter(
       (item) => !item.score_is_skip || item.obs || item.cand
     );
+  }
+
+  function renderSpecComparison(
+    data,
+    selectedIndex,
+    { specViewLevel = "top10", specViewMode = "table" } = {}
+  ) {
+    const result = data.results?.[selectedIndex];
+    const visibleItems = getBreakdownItems(data, selectedIndex);
 
     if (!visibleItems.length) {
       return '<p class="opm-rec__muted">No specification comparison available.</p>';
@@ -117,6 +126,56 @@
     const visibleRows = visibleItems.slice(0, visibleLimit);
     const buttonLabel = getSpecExpandButtonLabel(specViewLevel, totalCount);
 
+    const hintText =
+      visibleLimit >= totalCount
+        ? `Showing all ${totalCount} attributes`
+        : `Showing ${visibleLimit} of ${totalCount} attributes`;
+
+    const expandButton = buttonLabel
+      ? `<button
+          type="button"
+          id="opm-spec-expand-btn"
+          class="opm-btn opm-btn--breakdown"
+          aria-expanded="${specViewLevel !== "top10" ? "true" : "false"}"
+        >
+          ${buttonLabel}
+        </button>`
+      : "";
+
+    const viewToggleLabel =
+      specViewMode === "table" ? "Show in graph" : "Show in table";
+
+    const specToolbar = `<div class="opm-rec-spec-toolbar">
+        <div class="opm-rec-spec-toolbar__left">
+          ${expandButton}
+          <span class="opm-rec-spec-toolbar__hint">${hintText}</span>
+        </div>
+        <button
+          type="button"
+          id="opm-spec-view-toggle"
+          class="opm-btn opm-btn--graph-toggle"
+          aria-pressed="${specViewMode === "graph" ? "true" : "false"}"
+        >
+          ${viewToggleLabel}
+        </button>
+      </div>`;
+
+    let body = "";
+    if (specViewMode === "graph" && window.OpmPartsMatchGraph) {
+      body = window.OpmPartsMatchGraph.renderGraph(visibleRows, {
+        reqLabel,
+        recLabel,
+      });
+    } else {
+      body = renderComparisonTableBody(visibleRows, reqLabel, recLabel);
+    }
+
+    return `${specToolbar}<div class="opm-rec-spec-panel" id="opm-rec-spec-panel" data-spec-view="${specViewMode}">
+          ${body}
+        </div>`;
+  }
+
+  function renderComparisonTableBody(visibleRows, reqLabel, recLabel) {
     const rows = visibleRows
       .map((item) => {
         const reqDisplay = formatAttrValue(item.obs);
@@ -142,29 +201,7 @@
       })
       .join("");
 
-    const hintText =
-      visibleLimit >= totalCount
-        ? `Showing all ${totalCount} attributes`
-        : `Showing ${visibleLimit} of ${totalCount} attributes`;
-
-    const expandButton = buttonLabel
-      ? `<button
-          type="button"
-          id="opm-spec-expand-btn"
-          class="opm-btn opm-btn--breakdown"
-          aria-expanded="${specViewLevel !== "top10" ? "true" : "false"}"
-        >
-          ${buttonLabel}
-        </button>`
-      : "";
-
-    const specToolbar = `<div class="opm-rec-spec-toolbar">
-        ${expandButton}
-        <span class="opm-rec-spec-toolbar__hint">${hintText}</span>
-      </div>`;
-
-    return `${specToolbar}<div class="opm-rec-spec-panel" id="opm-rec-spec-panel">
-          <div class="opm-table-wrap opm-rec-table-wrap">
+    return `<div class="opm-table-wrap opm-rec-table-wrap">
             <table class="opm-table opm-rec-table opm-rec-table--pair">
               <thead>
                 <tr>
@@ -177,11 +214,11 @@
               <tbody>${rows}</tbody>
             </table>
           </div>
-          <p class="opm-rec__muted opm-rec-spec-footnote">Match % comes from the Parts Match algorithm (per-attribute score).</p>
-        </div>`;
+          <p class="opm-rec__muted opm-rec-spec-footnote">Match % comes from the Parts Match algorithm (per-attribute score).</p>`;
   }
 
-  function renderResults(data, selectedIndex, partNumber, { specViewLevel = "top10" } = {}) {
+  function renderResults(data, selectedIndex, partNumber, options = {}) {
+    const { specViewLevel = "top10", specViewMode = "table" } = options;
     const results = data.results || [];
     const selected = results[selectedIndex] || results[0];
 
@@ -249,7 +286,7 @@
         ${
           selected
             ? `<h3 class="opm-rec__subtitle">Specification comparison</h3>
-        ${renderComparisonTable(data, selectedIndex, { specViewLevel })}`
+        ${renderSpecComparison(data, selectedIndex, { specViewLevel, specViewMode })}`
             : ""
         }
       </section>
@@ -321,7 +358,19 @@
     let selectedIndex = 0;
     let lastPartNumber = "";
     let specViewLevel = "top10";
+    let specViewMode = "table";
     let loadingTimer = null;
+
+    function paintResults() {
+      if (!lastData) return;
+      resultsRoot.innerHTML = renderResults(
+        lastData,
+        selectedIndex,
+        lastPartNumber,
+        { specViewLevel, specViewMode }
+      );
+      bindResultInteractions();
+    }
 
     function setResultsPanelVisible(visible) {
       if (resultsPanel) {
@@ -366,27 +415,33 @@
           if (Number.isNaN(idx) || !lastData) return;
           selectedIndex = idx;
           specViewLevel = "top10";
-          resultsRoot.innerHTML = renderResults(
-            lastData,
-            selectedIndex,
-            lastPartNumber,
-            { specViewLevel }
-          );
-          bindResultInteractions();
+          specViewMode = "table";
+          paintResults();
         });
       });
 
       resultsRoot.querySelector("#opm-spec-expand-btn")?.addEventListener("click", () => {
         specViewLevel = advanceSpecViewLevel(specViewLevel);
-        if (!lastData) return;
-        resultsRoot.innerHTML = renderResults(
-          lastData,
-          selectedIndex,
-          lastPartNumber,
-          { specViewLevel }
-        );
-        bindResultInteractions();
+        paintResults();
       });
+
+      resultsRoot
+        .querySelector("#opm-spec-view-toggle")
+        ?.addEventListener("click", () => {
+          specViewMode = specViewMode === "table" ? "graph" : "table";
+          paintResults();
+        });
+
+      if (specViewMode === "graph" && window.OpmPartsMatchGraph) {
+        requestAnimationFrame(() => {
+          window.OpmPartsMatchGraph.wireGraphLinks(resultsRoot);
+        });
+        window.addEventListener(
+          "resize",
+          () => window.OpmPartsMatchGraph.wireGraphLinks(resultsRoot),
+          { once: true }
+        );
+      }
     }
 
     form.addEventListener("submit", async (e) => {
@@ -445,12 +500,8 @@
             lastData = body;
             selectedIndex = 0;
             specViewLevel = "top10";
-            resultsRoot.innerHTML = renderResults(
-              body,
-              selectedIndex,
-              partNumber
-            );
-            bindResultInteractions();
+            specViewMode = "table";
+            paintResults();
           }
           return;
         }
@@ -458,8 +509,8 @@
         lastData = body;
         selectedIndex = 0;
         specViewLevel = "top10";
-        resultsRoot.innerHTML = renderResults(body, selectedIndex, partNumber);
-        bindResultInteractions();
+        specViewMode = "table";
+        paintResults();
       } catch (err) {
         console.error(err);
         showMessage(
