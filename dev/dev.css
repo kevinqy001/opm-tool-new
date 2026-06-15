@@ -1,0 +1,105 @@
+.opm-header__title {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.opm-env-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  border-radius: 999px;
+  /* Reset h1 gradient text — otherwise badge looks like an empty toggle */
+  background-color: #eef2ff;
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: #4338ca;
+  color: #4338ca;
+}
+
+.opm-env-badge--dev {
+  color: #4338ca;
+  background-color: #eef2ff;
+  border: 1px solid #a5b4fc;
+  box-shadow: none;
+}
+
+.opm-dev-note {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--opm-text);
+  background: var(--opm-accent-soft);
+  border: 1px solid var(--opm-border);
+  border-radius: var(--opm-radius);
+}
+
+.opm-dev-note a {
+  color: var(--opm-accent);
+  font-weight: 500;
+}
+
+/* Parts Match results — layout tuned for dev */
+.opm-rec__context {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--opm-border);
+}
+
+.opm-rec__context .opm-rec__title {
+  margin-bottom: 6px;
+}
+
+.opm-rec__context-meta {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--opm-text-muted);
+}
+
+.opm-rec__context .opm-rec__hint {
+  margin: 0;
+}
+
+.opm-rec__subtitle {
+  margin-top: 4px;
+}
+
+.opm-rec-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 118px;
+  padding: 14px 16px 16px;
+  border-width: 1.5px;
+  border-color: #cbd5e1;
+}
+
+.opm-rec-card.is-active {
+  border-color: var(--opm-accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), var(--opm-shadow);
+}
+
+.opm-rec-card__body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.opm-rec-card__score {
+  position: static;
+  flex-shrink: 0;
+  font-size: 22px;
+  line-height: 1;
+}

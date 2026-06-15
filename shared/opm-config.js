@@ -20,4 +20,11 @@ window.OPM_CONFIG = {
   CACHE_TTL_MS: 86400000,
   /** Max part numbers in Series Coverage dropdown (API may return 200+) */
   PARTS_DROPDOWN_LIMIT: 150,
+  /** Parts Match preview — POST /api/match */
+  PARTSMATCH_API_BASE_URL:
+    "https://ca-partsmatch.wonderfulbay-075ecb42.eastus2.azurecontainerapps.io",
+  /** Route Parts Match via opm-dev-server.py (/partsmatch proxy) on localhost only. */
+  PARTSMATCH_USE_SAME_ORIGIN_PROXY: true,
+  PARTSMATCH_WORKSPACE_ID: "gems-setra",
+  PARTSMATCH_API_TIMEOUT_MS: 120000,
 };

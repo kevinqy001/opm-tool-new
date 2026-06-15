@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Obsolete Part Matching — Search History</title>
+  <title>Obsolete Part Matching — Search History (Dev)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="opm-shared.css" />
+  <link rel="stylesheet" href="../shared/opm-shared.css?v=2" />
+  <link rel="stylesheet" href="dev.css?v=2" />
 </head>
 <body class="opm-app" data-opm-page="saved-drafts">
   <div class="opm-shell">
     <aside class="opm-sidebar" aria-label="Main navigation">
       <div class="opm-logo">
-        <img class="opm-logo__img" src="assets/gems-setra-logo.png?v=2" alt="Gems Setra" />
+        <img class="opm-logo__img" src="../shared/assets/gems-setra-logo.png?v=2" alt="Gems Setra" />
       </div>
       <nav>
         <ul class="opm-nav">
@@ -32,7 +33,10 @@
 
     <div class="opm-main">
       <header class="opm-header">
-        <h1 class="opm-header__title">Obsolete Part Matching</h1>
+        <h1 class="opm-header__title">
+          Obsolete Part Matching
+          <span class="opm-env-badge opm-env-badge--dev">Dev</span>
+        </h1>
         <div class="opm-header__contact">
           <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
           <span>Call us at +1-800-378-1600</span>
@@ -82,7 +86,7 @@
       </main>
     </div>
   </div>
-  <script src="opm-recent-queries.js"></script>
-  <script src="opm-saved-drafts.js"></script>
+  <script src="../shared/opm-recent-queries.js"></script>
+  <script src="../shared/opm-saved-drafts.js"></script>
 </body>
 </html>

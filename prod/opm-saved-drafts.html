@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Obsolete Part Matching — Search History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/opm-shared.css" />
+</head>
+<body class="opm-app" data-opm-page="saved-drafts">
+  <div class="opm-shell">
+    <aside class="opm-sidebar" aria-label="Main navigation">
+      <div class="opm-logo">
+        <img class="opm-logo__img" src="../shared/assets/gems-setra-logo.png?v=2" alt="Gems Setra" />
+      </div>
+      <nav>
+        <ul class="opm-nav">
+          <li class="opm-nav__item">
+            <a class="opm-nav__link" href="index.html">OPM</a>
+          </li>
+          <li class="opm-nav__item">
+            <a class="opm-nav__link is-active" href="opm-saved-drafts.html" aria-current="page">Search History</a>
+          </li>
+          <li class="opm-nav__item">
+            <a class="opm-nav__link" href="opm-series-coverage.html">Series Coverage</a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="opm-main">
+      <header class="opm-header">
+        <h1 class="opm-header__title">Obsolete Part Matching</h1>
+        <div class="opm-header__contact">
+          <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
+          <span>Call us at +1-800-378-1600</span>
+        </div>
+      </header>
+
+      <main class="opm-content">
+        <section aria-label="Saved drafts search">
+          <form id="saved-drafts-search-form" class="opm-search-row" action="#" method="get">
+            <label for="draft-part-number" class="visually-hidden">Part number</label>
+            <input
+              id="draft-part-number"
+              class="opm-input"
+              type="search"
+              name="partNumber"
+              placeholder="Enter Part Number"
+              autocomplete="off"
+            />
+            <button type="submit" class="opm-btn">Search</button>
+          </form>
+
+          <div
+            id="opm-recent-queries"
+            class="opm-recent-queries"
+            aria-label="Recent searches from OPM"
+            hidden
+          >
+            <p class="opm-recent-queries__label">Recent searches from OPM</p>
+            <div id="opm-recent-queries-list" class="opm-recent-queries__list" role="list"></div>
+          </div>
+
+          <div class="opm-results-header">
+            <div class="opm-results-header__col">Requested</div>
+            <div class="opm-results-header__col">Recommended</div>
+          </div>
+
+          <div class="opm-results-body" aria-label="Search history results">
+            <p class="opm-saved__empty">Search history from OPM will appear here. Enter text and click Search to filter by Requested part number.</p>
+          </div>
+
+          <nav class="opm-pagination" aria-label="Draft results pagination">
+            <button type="button" class="opm-btn" disabled>Prev</button>
+            <span class="opm-pagination__info" aria-live="polite">1 / 1</span>
+            <button type="button" class="opm-btn" disabled>Next</button>
+          </nav>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="../shared/opm-recent-queries.js"></script>
+  <script src="../shared/opm-saved-drafts.js"></script>
+</body>
+</html>

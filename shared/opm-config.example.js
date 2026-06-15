@@ -15,4 +15,9 @@ window.OPM_CONFIG = {
   API_TIMEOUT_RECOMMEND_MS: 180000,
   CACHE_TTL_MS: 86400000,
   PARTS_DROPDOWN_LIMIT: 150,
+  PARTSMATCH_API_BASE_URL:
+    "https://ca-partsmatch.wonderfulbay-075ecb42.eastus2.azurecontainerapps.io",
+  PARTSMATCH_USE_SAME_ORIGIN_PROXY: true,
+  PARTSMATCH_WORKSPACE_ID: "gems-setra",
+  PARTSMATCH_API_TIMEOUT_MS: 120000,
 };

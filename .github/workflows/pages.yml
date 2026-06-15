@@ -1,5 +1,6 @@
 name: Deploy GitHub Pages
 
+# Deploys the full repo: root redirects to prod/, dev at /dev/
 on:
   push:
     branches: [main, master]
