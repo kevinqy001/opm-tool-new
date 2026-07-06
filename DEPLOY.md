@@ -32,8 +32,8 @@ After the `Deploy GitHub Pages` workflow succeeds, the site is at:
 ```
 /
   index.html          → redirects to prod/index.html
-  prod/               → production (GC Match)
-  dev/                → development (Parts Match)
+  prod/               → production (Parts Match)
+  dev/                → development (Parts Match, Dev badge)
   shared/             → shared CSS, JS, assets
   opm-dev-server.py   → local dev + API proxies
 ```
@@ -47,8 +47,7 @@ After the `Deploy GitHub Pages` workflow succeeds, the site is at:
 
 ## Notes
 
-- **Production:** `prod/` — GC Match OPM (`recommend_from_ticket`), unchanged on `master`.
-- **Development:** `dev/` — Parts Match OPM (`POST /api/match`); part number only, no draft email.
-- **Local dev:** uses `/gcmatch` and `/partsmatch` proxies; Parts Match needs `.env.partsmatch.local` (see `opm-dev-server.py` header).
-- **GitHub Pages:** prod calls the Azure GC Match API directly; the backend must allow CORS for your Pages origin.
-- OPM demo query example: `Need replacement for 2671001wb111kcd` (verified to return 3 recommendations).
+- **Production & development:** both use Parts Match (`POST /api/match`, catalog lifecycle for Series Coverage). `dev/` shows a Dev badge; `prod/` does not.
+- **Local dev:** `python opm-dev-server.py` proxies `/partsmatch`; Parts Match needs `.env.partsmatch.local` (see `opm-dev-server.py` header).
+- **GitHub Pages:** the browser calls the Parts Match API directly; the backend must allow CORS for your Pages origin (or use a BFF).
+- OPM demo part number example: `N4100`.

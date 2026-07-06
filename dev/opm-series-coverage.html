@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/opm-shared.css?v=2" />
+  <link rel="stylesheet" href="../shared/opm-shared.css?v=5" />
   <link rel="stylesheet" href="dev.css?v=2" />
 </head>
 <body class="opm-app" data-opm-page="series-coverage">
@@ -37,10 +37,6 @@
           Obsolete Part Matching
           <span class="opm-env-badge opm-env-badge--dev">Dev</span>
         </h1>
-        <div class="opm-header__contact">
-          <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
-          <span>Call us at +1-800-378-1600</span>
-        </div>
       </header>
 
       <main class="opm-content">
@@ -52,7 +48,7 @@
               class="opm-input"
               type="search"
               name="partNumber"
-              placeholder="Filter part numbers in selected series…"
+              placeholder="Enter part number (e.g. N4100) or filter in selected series…"
               autocomplete="off"
             />
             <button type="submit" id="series-search-btn" class="opm-btn">
@@ -99,7 +95,7 @@
             <button type="button" id="series-download-btn" class="opm-btn">Download Excel</button>
           </div>
 
-          <p id="series-data-source" class="opm-toolbar__hint" style="margin: 0 0 12px;"></p>
+          <p id="series-data-source" class="opm-toolbar__hint" style="margin: 0 0 12px;" hidden></p>
 
           <div class="opm-table-wrap">
             <table class="opm-table opm-table--equal-cols">
@@ -122,7 +118,7 @@
   </div>
   <script src="../shared/opm-config.js"></script>
   <script src="../shared/opm-api-cache.js"></script>
-  <script src="../shared/opm-api-client.js"></script>
-  <script src="../shared/opm-series-coverage.js"></script>
+  <script src="../shared/opm-partsmatch-client.js?v=2"></script>
+  <script src="../shared/opm-partsmatch-series-coverage.js?v=3"></script>
 </body>
 </html>

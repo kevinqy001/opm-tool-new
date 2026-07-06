@@ -1,0 +1,1332 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+      "title": "parts-matcher",
+      "version": "0.0.1"
+    },
+    "paths": {
+      "/api/healthz": {
+        "get": {
+          "summary": "Healthz",
+          "description": "Public liveness probe, also the diagnostic surface for served-product\nprovenance. `product_commit` is the served product version, or\n`\"unknown\"` when `product/source.json` is absent or omits it (the\nSlice 01 default). Provenance never gates liveness — a missing\n`source.json` still returns `status: ok`.",
+          "operationId": "healthz_api_healthz_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object",
+                    "title": "Response Healthz Api Healthz Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/reload": {
+        "post": {
+          "summary": "Reload State",
+          "description": "Clear the in-process grammar/schema cache and reload from disk.\n\nCall this after dropping new catalog-entry YAMLs on disk while the server\nis running — avoids a full process restart.",
+          "operationId": "reload_state_api_reload_post",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object",
+                    "title": "Response Reload State Api Reload Post"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/catalog/entries/{klass}/{brand}/{entry}/detail": {
+        "get": {
+          "summary": "Entry Detail Tuple",
+          "description": "Raw-artifact detail for an accepted catalog entry, addressed by\nthe canonical `(class, brand, entry)` tuple.\n\nReturns `{id, review_status: \"committed\", pdf_url, draft, raw}` —\nthe **raw document** view, read directly from\n`product/entries/\u003Cclass\u003E/\u003Cstem\u003E.yaml`. The compiled catalog\n(`/api/catalog/lifecycle`) is the list-shape matching surface and\ndeliberately doesn't carry PDFs / snippets; this endpoint is what\nthe review UI uses for the detail panel.\n\nTuple addressing is the only detail address: nothing prevents two\nclasses from having the same `entry:` value (e.g. a controller\n`6700` and a pressure `6700`), so a bare-name lookup would be\nambiguous. Callers always carry the class/brand/entry triple.\n\nResolution is **by YAML body**, not by file stem — the stem is\nsanitized for filesystem hygiene (e.g. `KS98-1` is stored as\n`KS98_1_PMA.yaml`) and reconstructing that rule client-side is\nbrittle. See `_find_family_file`.",
+          "operationId": "entry_detail_tuple_api_catalog_entries__klass___brand___entry__detail_get",
+          "parameters": [
+            {
+              "name": "klass",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Klass"
+              }
+            },
+            {
+              "name": "brand",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Brand"
+              }
+            },
+            {
+              "name": "entry",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Entry"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Entry Detail Tuple Api Catalog Entries  Klass   Brand   Entry  Detail Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/catalog/entries": {
+        "get": {
+          "summary": "List Entries",
+          "description": "All known catalog entries. The UI uses this for filters and for\nthe 'jump to entry grammar' affordance on the review screen.",
+          "operationId": "list_entries_api_catalog_entries_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array",
+                    "title": "Response List Entries Api Catalog Entries Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/catalog/lifecycle": {
+        "get": {
+          "summary": "Catalog Lifecycle",
+          "description": "Read-only lifecycle summary of the accepted catalog —\n**compiled-catalog shape**, not the raw artifact view.\n\nPure read model over `state.catalog.entries`: entry identity,\nlifecycle status (`active`/`obsolete`), `supersedes` /\n`superseded_by`, and health flags. No PDF link, no source\nsnippets, no YAML text — those live in the raw artifact and are\nserved by `/api/catalog/entries/{class}/{brand}/{entry}/detail`.\nThe split mirrors the system's runtime-vs-review separation:\ncompiled catalog is matcher input; raw artifact is reviewer\ninput.\n\nResponse is sorted by (klass, entry) so the UI table has stable\norder without client-side sort state.",
+          "operationId": "catalog_lifecycle_api_catalog_lifecycle_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Catalog Lifecycle Api Catalog Lifecycle Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/schema": {
+        "get": {
+          "summary": "Get Schema",
+          "description": "Per-class attribute defs. Read-only inspection surface — used\nby gold review / trace breakdowns / any UI that wants to render\ncanonical attribute names, roles, weights, and tolerances. The\nUI does not mutate scoring policy through this endpoint; policy\nlives in `product/schemas/*.yaml` and changes via git.\n\nReturned shape mirrors AttrDef but only carries fields the UI\nneeds; intentionally leaves out `extra` (scorer-internal metadata).",
+          "operationId": "get_schema_api_schema_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "type": "object",
+                    "title": "Response Get Schema Api Schema Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/match": {
+        "post": {
+          "summary": "Match",
+          "operationId": "match_api_match_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Match Api Match Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/me": {
+        "get": {
+          "summary": "Me",
+          "operationId": "me_api_me_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Me Api Me Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/trace": {
+        "post": {
+          "summary": "Trace",
+          "operationId": "trace_api_trace_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Trace Api Trace Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/decode": {
+        "post": {
+          "summary": "Decode",
+          "operationId": "decode_api_decode_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecodeRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Decode Api Decode Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/extract": {
+        "post": {
+          "summary": "Extract",
+          "operationId": "extract_api_extract_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Extract Api Extract Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/files/datasheet/{path}": {
+        "get": {
+          "summary": "Serve Datasheet",
+          "description": "Serve a product datasheet from `datasheets_root()`.\n\nSame path-traversal guard as the seed-corpus route, against the\nproduct tree's `datasheets/`. Resolved lazily inside the route —\n`datasheets_root()` is under `$PARTS_WORKSPACE_ROOT`, so resolving\nit at import would raise when the workspace is unset.",
+          "operationId": "serve_datasheet_files_datasheet__path__get",
+          "parameters": [
+            {
+              "name": "path",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Path"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/files/pdf-draft/{run_id}": {
+        "get": {
+          "summary": "Serve Pdf Draft",
+          "description": "Serve a provisional run's draft PDF (`source.pdf`).\n\nKeyed by run id, not a path: the ingestion store resolves the\nrun-local `source.pdf` under `state/ingestion-runs/\u003Crun-id\u003E/`, so\nthere is no staging-tree path to traverse. The store's\n`source_pdf_path` validates the run id (rejecting `..`, separators,\nand glob metacharacters) — an invalid id raises `ValueError`, which\nmaps to 404 here, as does a run with no PDF on disk. The auth\nmiddleware protects this prefix alongside the datasheet route.",
+          "operationId": "serve_pdf_draft_files_pdf_draft__run_id__get",
+          "parameters": [
+            {
+              "name": "run_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Run Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+  
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending": {
+        "get": {
+          "summary": "List Pending",
+          "description": "All drafts in the pending queue.\n\nEnvelope-only. The list enumerates run directories under the\nworkspace ingestion-runs root via the store. The run id IS the row\nidentity — same id the upload route allocated, same id every URL\naddresses. With one run per directory there is no cross-class\nstem collision to detect: run id uniqueness is a property of the\nstore's directory layout, so the ambiguity row is gone.\n\nListing exclusively from envelopes closes a class of bugs\nstructurally: there's only one surface to enumerate, one\nidentity rule, and no dedup logic to get wrong.",
+          "operationId": "list_pending_api_pending_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array",
+                    "title": "Response List Pending Api Pending Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}": {
+        "get": {
+          "summary": "Get Pending",
+          "description": "Envelope-first read. The envelope IS the review surface;\n`state/pending/\u003Cid\u003E.yaml` is no longer a fallback.\n\nOutcomes:\n  - envelope exists → project from envelope, return the\n    review payload (draft, raw, workflow, etc.). `raw` is\n    generated from the envelope, not read from disk — the\n    editor renders it unchanged.\n  - no envelope → 404.\n\nPut keeps the envelope fresh on every UI edit, so an\nenvelope-source response always reflects the latest reviewer\nstate.",
+          "operationId": "get_pending_api_pending__draft_id__get",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Get Pending Api Pending  Draft Id  Get"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "put": {
+          "summary": "Put Pending",
+          "description": "Update the canonical `.ingest.json` envelope from a\nUI-shaped YAML payload.\n\nFlow:\n  1. Validate the UI's YAML-shaped payload through the\n     accepted-family raw boundary (RawCatalogEntryDocument). This\n     catches level violations, vocab issues, schema-unknown\n     attrs, and the retired `prefix:` / `status:` top-level\n     fields — same gate accepted YAML loading uses.\n  2. Translate the validated raw model to an ArtifactBody via\n     `yaml_dict_to_envelope_body`. The translator enforces\n     the per-fact provenance contract (snippet + page on\n     every non-literal source) so Put can't degrade\n     canonical provenance.\n  3. Load the existing envelope if any (preserves\n     `document_id`, `ingestion_run`, `annotations`,\n     `state_history`) or build a fresh envelope.\n  4. Replace `body` with the translated one; map UI\n     `review_status` onto envelope.state; append a\n     state_history entry only when state actually changes.\n  5. Run `smoke_check` in memory against the updated body.\n     Non-OK → 422 with the rendered report, no disk write.\n  6. Persist the envelope atomically through the store\n     (`create_run` for a first-time Put, `save_run` otherwise).\n     No companion YAML projection is written.\n\nOnly the `.ingest.json` envelope is written, so the prior\nYAML-replace failure modes — and the documented \"rollback only\nhandles new envelopes\" limit — don't exist here.",
+          "operationId": "put_pending_api_pending__draft_id__put",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PutBody"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "title": "Response Put Pending Api Pending  Draft Id  Put"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}/accept": {
+        "post": {
+          "summary": "Accept Pending",
+          "description": "Stage a reviewed draft into the local product tree.\n\nLocal product-repo *staging*, not a runtime publish and not\nproduction approval. Enabled only when `PARTS_INGESTION_ENABLED` is\ntrue (local authoring); deployed mode 403s here (the API is the\nboundary, not the hidden tab). The configured workspace `product/`\ntree is the target — there is no separate product-checkout concept.\n\nOn success Accept:\n  - projects the reviewed candidate YAML from the run's envelope\n    (the single source of truth; the request body is not\n    consulted);\n  - copies the run-local `source.pdf` into the product tree at\n    `product/datasheets/\u003Cclass\u003E/\u003Cstem\u003E.pdf`;\n  - rewrites the YAML citation to the product-relative\n    `datasheets/\u003Cclass\u003E/\u003Cstem\u003E.pdf`;\n  - smoke-validates the candidate against the product schemas/vocab\n    before any write;\n  - writes `product/entries/\u003Cclass\u003E/\u003Cstem\u003E.yaml`;\n  - reloads the in-memory catalog so a local match sees it\n    immediately;\n  - deletes the run directory (envelope + source PDF) — the\n    product repo's Git history is the audit trail.\n\nIt does NOT commit, does NOT require DB credentials, and does NOT\nmean \"approved for production\". The staged YAML + PDF are left as a\nGit working-tree diff for the developer to inspect, test, commit,\nand PR — Git/PR remains the approval and deploy path.\n\nErrors:\n  - 403 — ingestion authoring disabled (deployed posture).\n  - 404 — no run at this draft_id.\n  - 409 — the source PDF is missing, or staging would clobber an\n    existing datasheet target.\n  - 422 — envelope present but body not yet projectable, missing\n    class/entry, or fails the catalog smoke gate.\n  - 500 — disk failure promoting the PDF or writing the YAML.",
+          "operationId": "accept_pending_api_pending__draft_id__accept_post",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Accept Pending Api Pending  Draft Id  Accept Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}/reject": {
+        "post": {
+          "summary": "Reject Pending",
+          "description": "Reject a pending draft.\n\nTransitions envelope.state to \"rejected\" with a\nstate_history entry. The envelope's state_history is the\naudit trail. Returns 404 when no envelope exists.",
+          "operationId": "reject_pending_api_pending__draft_id__reject_post",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectBody"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "title": "Response Reject Pending Api Pending  Draft Id  Reject Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}/steps/{step_name}/validate": {
+        "post": {
+          "summary": "Validate Step",
+          "description": "Dry-run a proposed step output through the same validator the\nLLM execution path uses, plus return a downstream-invalidation\npreview so the UI can be honest about what saving would change.\n\nReturns 200 with `ok: bool, issues: [...], would_invalidate: [...]`\non every successful request — including when the validator reports\nissues. Step-shape errors (unknown step, code/non-editable step,\nmissing draft, missing deps) map to 4xx.",
+          "operationId": "validate_step_api_pending__draft_id__steps__step_name__validate_post",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            },
+            {
+              "name": "step_name",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Step Name"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepEditBody"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Validate Step Api Pending  Draft Id  Steps  Step Name  Validate Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}/steps/{step_name}/edit": {
+        "post": {
+          "summary": "Edit Step",
+          "description": "Persist a reviewer-supplied step output as `status=\"edited\"`\nand atomically invalidate downstream steps that already exist in\nthe run. Wraps `IngestionRunner.edit_step_output` — the route is\nonly responsible for resolving the draft, calling the runner,\nand mapping exceptions.\n\nResponse: the saved `StepResult` plus the list of downstream step\nnames that flipped to `invalidated`, so the UI can refresh\nwithout re-walking the envelope.",
+          "operationId": "edit_step_api_pending__draft_id__steps__step_name__edit_post",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            },
+            {
+              "name": "step_name",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Step Name"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepEditBody"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Edit Step Api Pending  Draft Id  Steps  Step Name  Edit Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/{draft_id}/resume": {
+        "post": {
+          "summary": "Resume Pipeline",
+          "description": "Schedule a pipeline resume. Returns immediately after queueing;\npolling on `/api/pending/{id}` is the source of truth for step\nprogress. The runner persists each step's `running` /\n`passed` / `failed` status as it executes, and the polling\nhelper already keys on those.",
+          "operationId": "resume_pipeline_api_pending__draft_id__resume_post",
+          "parameters": [
+            {
+              "name": "draft_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Draft Id"
+              }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeBody"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Resume Pipeline Api Pending  Draft Id  Resume Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/pending/upload": {
+        "post": {
+          "summary": "Upload Pending Pdf",
+          "description": "Accept one PDF + class, persist it, seed the envelope, and\nschedule the runner. See module-level upload comment for the\ncontract; tests pin the validation/edge cases.",
+          "operationId": "upload_pending_pdf_api_pending_upload_post",
+          "requestBody": {
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "$ref": "#/components/schemas/Body_upload_pending_pdf_api_pending_upload_post"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Upload Pending Pdf Api Pending Upload Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/gold": {
+        "get": {
+          "summary": "Get Gold Cases",
+          "description": "Return all classes with raw cases — no evaluation, fast.",
+          "operationId": "get_gold_cases_api_gold_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Get Gold Cases Api Gold Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/gold/evaluate/{class_name}": {
+        "post": {
+          "summary": "Run Gold Evaluate",
+          "description": "Run evaluate_all for a single class. No server-side cache —\nthe client owns the result lifetime.",
+          "operationId": "run_gold_evaluate_api_gold_evaluate__class_name__post",
+          "parameters": [
+            {
+              "name": "class_name",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "title": "Class Name"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Response Run Gold Evaluate Api Gold Evaluate  Class Name  Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/gold/history": {
+        "get": {
+          "summary": "Get Gold History",
+          "description": "Return the eval-run metric history for every class, oldest first.\n\nReads the append-only `state/eval-runs/**/*.json` records the Evals\nRun button writes (see `eval_run_store`) and groups them by class so\nthe overview can plot each class's outcome mix over time. One glob\npass for all classes (the overview lists them all) rather than a\nper-class endpoint that would re-walk the tree N times.\n\nBest-effort per file: an unreadable or malformed record is skipped\n(logged), never failing the whole history — partial evidence still\nplots. Matching never reads this back; it is display-only.",
+          "operationId": "get_gold_history_api_gold_history_get",
+          "responses": {
+            "200": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Get Gold History Api Gold History Get"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/feedback": {
+        "post": {
+          "summary": "Submit Feedback",
+          "description": "Persist one feedback record as immutable JSON under `state/feedback`.\n\nAttribution is server-resolved: `product_commit` from served-product\nprovenance (`\"unknown\"` when no `source.json` stamp is present),\n`created_by` from the Easy Auth principal (`get_current_user`,\nNone in local dev). Missing provenance never blocks the write — the\nrecord marks the product version `unknown` and the response carries a\nwarning.\n\nA write that does not land raises `FeedbackWriteError`, surfaced here as\na structured 500. The app never reports a report as saved when the JSON\nfile was not written.",
+          "operationId": "submit_feedback_api_feedback_post",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "description": "Successful Response",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "additionalProperties": true,
+                    "type": "object",
+                    "title": "Response Submit Feedback Api Feedback Post"
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HTTPValidationError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Body_upload_pending_pdf_api_pending_upload_post": {
+          "properties": {
+            "pdf": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream",
+              "title": "Pdf"
+            },
+            "class": {
+              "type": "string",
+              "title": "Class"
+            }
+          },
+          "type": "object",
+          "required": [
+            "pdf",
+            "class"
+          ],
+          "title": "Body_upload_pending_pdf_api_pending_upload_post"
+        },
+        "ConstraintsRequest": {
+          "properties": {
+            "entries": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "title": "Entries"
+            },
+            "codes": {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "type": "object",
+              "title": "Codes"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "title": "ConstraintsRequest"
+        },
+        "DecodeRequest": {
+          "properties": {
+            "sku": {
+              "type": "string",
+              "title": "Sku"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "sku"
+          ],
+          "title": "DecodeRequest"
+        },
+        "ExtractRequest": {
+          "properties": {
+            "text": {
+              "type": "string",
+              "title": "Text"
+            },
+            "include_series": {
+              "type": "boolean",
+              "title": "Include Series",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "text"
+          ],
+          "title": "ExtractRequest"
+        },
+        "FeedbackRequest": {
+          "properties": {
+            "surface": {
+              "type": "string",
+              "title": "Surface"
+            },
+            "category": {
+              "type": "string",
+              "title": "Category"
+            },
+            "captured_context": {
+              "additionalProperties": true,
+              "type": "object",
+              "title": "Captured Context"
+            },
+            "suggested_correction": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Suggested Correction"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Note"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "surface",
+            "category",
+            "captured_context"
+          ],
+          "title": "FeedbackRequest",
+          "description": "The client-supplied feedback body — and ONLY these fields.\n\n`extra=\"forbid\"` is load-bearing: it is the attribution guarantee.\nIdentity (`id`, `created_at`), attribution (`created_by`), and product\nprovenance (`product_commit`) are server-resolved and MUST NOT appear\nhere — a client that sends them is 422'd rather than silently honored."
+        },
+        "HTTPValidationError": {
+          "properties": {
+            "detail": {
+              "items": {
+                "$ref": "#/components/schemas/ValidationError"
+              },
+              "type": "array",
+              "title": "Detail"
+            }
+          },
+          "type": "object",
+          "title": "HTTPValidationError"
+        },
+        "MatchRequest": {
+          "properties": {
+            "sku": {
+              "type": "string",
+              "title": "Sku"
+            },
+            "include_obsolete": {
+              "type": "boolean",
+              "title": "Include Obsolete",
+              "default": false
+            },
+            "observed_codes": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object",
+              "title": "Observed Codes"
+            },
+            "constraints": {
+              "$ref": "#/components/schemas/ConstraintsRequest"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "sku"
+          ],
+          "title": "MatchRequest"
+        },
+        "PutBody": {
+          "properties": {
+            "draft": {
+              "additionalProperties": true,
+              "type": "object",
+              "title": "Draft"
+            },
+            "review_status": {
+              "type": "string",
+              "title": "Review Status",
+              "default": "in_review"
+            }
+          },
+          "type": "object",
+          "required": [
+            "draft"
+          ],
+          "title": "PutBody"
+        },
+        "RejectBody": {
+          "properties": {
+            "reason": {
+              "type": "string",
+              "title": "Reason",
+              "default": ""
+            }
+          },
+          "type": "object",
+          "title": "RejectBody"
+        },
+        "ResumeBody": {
+          "properties": {
+            "from_step": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From Step"
+            },
+            "until_step": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until Step"
+            },
+            "rerun_from": {
+              "type": "boolean",
+              "title": "Rerun From",
+              "default": false
+            }
+          },
+          "type": "object",
+          "title": "ResumeBody"
+        },
+        "StepEditBody": {
+          "properties": {
+            "output": {
+              "title": "Output"
+            }
+          },
+          "type": "object",
+          "required": [
+            "output"
+          ],
+          "title": "StepEditBody"
+        },
+        "TraceRequest": {
+          "properties": {
+            "obs_sku": {
+              "type": "string",
+              "title": "Obs Sku"
+            },
+            "candidate_entries": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Candidate Entries"
+            },
+            "observed_codes": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Observed Codes"
+            },
+            "constraints": {
+              "$ref": "#/components/schemas/ConstraintsRequest"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "obs_sku"
+          ],
+          "title": "TraceRequest"
+        },
+        "ValidationError": {
+          "properties": {
+            "loc": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "array",
+              "title": "Location"
+            },
+            "msg": {
+              "type": "string",
+              "title": "Message"
+            },
+            "type": {
+              "type": "string",
+              "title": "Error Type"
+            },
+            "input": {
+              "title": "Input"
+            },
+            "ctx": {
+              "type": "object",
+              "title": "Context"
+            }
+          },
+          "type": "object",
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ],
+          "title": "ValidationError"
+        }
+      }
+    }
+  }

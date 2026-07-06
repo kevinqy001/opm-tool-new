@@ -1,10 +1,9 @@
 /**
- * Search History — table shows last OPM searches from localStorage.
- * Search filters the history list by substring match on Requested part number (no API).
+ * Search History — re-runs Parts Match on Search; table shows one row per search run.
  */
 (function () {
   const HISTORY_EMPTY_MSG =
-    "No OPM search history yet. Results from the OPM page will appear here.";
+    "No OPM search history yet. Search a part number or use results from the OPM page.";
   const FILTER_EMPTY_MSG =
     "No search history entries match your filter. Try a different part number.";
 
@@ -19,6 +18,33 @@
     body.innerHTML = `<p class="opm-saved__empty">${escapeHtml(message)}</p>`;
   }
 
+  function renderRecommendedHtml(recommendations) {
+    const store = window.OpmRecentQueries;
+    if (!Array.isArray(recommendations) || !recommendations.length) {
+      return "—";
+    }
+
+    const scoreToPercent = store?.scoreToPercent;
+    const formatScoreLabel = store?.formatScoreLabel;
+    const matchScoreColor = store?.matchScoreColor;
+
+    return `<div class="opm-history-rec-list">${recommendations
+      .map((item) => {
+        const part = escapeHtml(item.partNumber || "—");
+        const pct = scoreToPercent?.(item.score);
+        const label = formatScoreLabel?.(item.score);
+        const color = pct != null ? matchScoreColor?.(pct) : null;
+
+        const scoreBadge =
+          label && color
+            ? `<span class="opm-history-rec__score" style="background-color:${escapeHtml(color)}" aria-label="Match score ${escapeHtml(label)}">${escapeHtml(label)}</span>`
+            : "";
+
+        return `<div class="opm-history-rec">${part}${scoreBadge}</div>`;
+      })
+      .join("")}</div>`;
+  }
+
   function renderRows(body, rows) {
     if (!rows.length) {
       renderEmpty(body, FILTER_EMPTY_MSG);
@@ -29,11 +55,14 @@
       .map(
         (row) => `
       <div class="opm-draft-row">
+        <div class="opm-draft-row__cell opm-draft-row__cell--date">
+          ${escapeHtml(row.searchedAt || "—")}
+        </div>
         <div class="opm-draft-row__cell opm-draft-row__cell--requested">
           <strong>${escapeHtml(row.requested)}</strong>
         </div>
         <div class="opm-draft-row__cell opm-draft-row__cell--recommended">
-          ${escapeHtml(row.recommended)}
+          ${renderRecommendedHtml(row.recommendations)}
         </div>
       </div>`
       )
@@ -52,7 +81,7 @@
     );
   }
 
-  function renderRecentQueries(searchInput, onFilter) {
+  function renderRecentQueries(searchInput) {
     const wrap = document.getElementById("opm-recent-queries");
     const listEl = document.getElementById("opm-recent-queries-list");
     const store = window.OpmRecentQueries;
@@ -86,7 +115,6 @@
         if (!entry?.partNumber || !searchInput) return;
         searchInput.value = entry.partNumber;
         searchInput.focus();
-        onFilter?.(entry.partNumber);
       });
     });
   }
@@ -95,6 +123,7 @@
     const body = document.querySelector(".opm-results-body");
     const searchInput = document.getElementById("draft-part-number");
     const form = searchInput?.closest("form");
+    const submitBtn = form?.querySelector('button[type="submit"]');
     const prevBtn = document.querySelector(".opm-pagination button:first-child");
     const nextBtn = document.querySelector(".opm-pagination button:last-child");
     const pageInfo = document.querySelector(".opm-pagination__info");
@@ -103,13 +132,13 @@
     if (!body || !window.OpmRecentQueries) return;
 
     const perPage = 10;
+    let allRows = [];
+    let page = 1;
+    let searchInFlight = false;
 
     function getHistoryRows() {
       return window.OpmRecentQueries.getRecentHistoryRows();
     }
-
-    let allRows = [];
-    let page = 1;
 
     function updatePagination() {
       const total = Math.max(1, Math.ceil(allRows.length / perPage) || 1);
@@ -162,9 +191,67 @@
       renderPage();
     }
 
+    function setSearchBusy(busy) {
+      searchInFlight = busy;
+      if (submitBtn) {
+        submitBtn.disabled = busy;
+        submitBtn.textContent = busy ? "Searching…" : "Search";
+      }
+    }
+
+    async function runMatchAndRecord(partNumber) {
+      const sku = String(partNumber ?? "").trim();
+      if (!sku) {
+        showFullHistory();
+        return;
+      }
+
+      const client = window.OpmPartsMatchClient;
+      if (!client?.matchPart) {
+        applyHistoryFilter(sku);
+        return;
+      }
+
+      if (searchInFlight) return;
+
+      setSearchBusy(true);
+      const notice = document.getElementById("saved-drafts-alert");
+      if (notice) notice.hidden = true;
+      try {
+        const res = await client.matchPart(sku);
+        if (!res.ok) {
+          showFullHistory();
+          const msg = client.formatApiError(res);
+          const notice = document.getElementById("saved-drafts-alert");
+          if (notice) {
+            notice.textContent = msg;
+            notice.hidden = false;
+          }
+          return;
+        }
+
+        window.OpmRecentQueries.add(sku, { response: res.data });
+        renderRecentQueries(searchInput);
+        showFullHistory();
+      } catch (err) {
+        showFullHistory();
+        const msg =
+          err?.message || "Could not reach Parts Match. Please try again.";
+        const notice = document.getElementById("saved-drafts-alert");
+        if (notice) {
+          notice.textContent = msg;
+          notice.hidden = false;
+        } else {
+          console.warn("[OPM Search History]", msg);
+        }
+      } finally {
+        setSearchBusy(false);
+      }
+    }
+
     function refreshFromStore() {
       showFullHistory();
-      renderRecentQueries(searchInput, (partNumber) => applyHistoryFilter(partNumber));
+      renderRecentQueries(searchInput);
     }
 
     refreshFromStore();
@@ -173,9 +260,15 @@
       if (e.persisted) refreshFromStore();
     });
 
+    window.addEventListener("storage", (e) => {
+      if (e.key === window.OpmRecentQueries?.STORAGE_KEY) {
+        refreshFromStore();
+      }
+    });
+
     form?.addEventListener("submit", (e) => {
       e.preventDefault();
-      applyHistoryFilter(searchInput?.value || "");
+      runMatchAndRecord(searchInput?.value || "");
     });
   }
 

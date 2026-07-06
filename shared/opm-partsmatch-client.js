@@ -101,35 +101,38 @@
     return `Request failed (HTTP ${status}).`;
   }
 
-  async function matchPart(sku, options = {}) {
-    const ms = timeoutMs();
+  async function fetchJson(path, options = {}) {
+    const ms = options.timeoutMs ?? timeoutMs();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
 
-    const body = {
-      sku: String(sku ?? "").trim(),
-      include_obsolete: Boolean(options.includeObsolete),
-    };
-
     const headers = {
       Accept: "application/json",
-      "Content-Type": "application/json",
       "X-Workspace-Id": workspaceId(),
     };
 
+    const method = options.method || "GET";
+    const body = options.body;
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const init = {
-      method: "POST",
+      method,
       headers,
-      body: JSON.stringify(body),
       signal: controller.signal,
     };
+
+    if (body !== undefined) {
+      init.body = JSON.stringify(body);
+    }
 
     if (options.credentials) {
       init.credentials = options.credentials;
     }
 
     try {
-      const url = `${getPartsMatchBaseUrl()}/api/match`;
+      const url = `${getPartsMatchBaseUrl()}${path}`;
       const response = await fetch(url, init);
       const text = await response.text();
       let data = null;
@@ -163,10 +166,55 @@
     }
   }
 
+  async function decodePart(sku, options = {}) {
+    return fetchJson("/api/decode", {
+      ...options,
+      method: "POST",
+      body: { sku: String(sku ?? "").trim() },
+    });
+  }
+
+  async function getCatalogLifecycle(options = {}) {
+    return fetchJson("/api/catalog/lifecycle", options);
+  }
+
+  async function getCatalogEntries(options = {}) {
+    return fetchJson("/api/catalog/entries", options);
+  }
+
+  async function matchPart(sku, options = {}) {
+    return fetchJson("/api/match", {
+      ...options,
+      method: "POST",
+      body: {
+        sku: String(sku ?? "").trim(),
+        include_obsolete: Boolean(options.includeObsolete),
+      },
+    });
+  }
+
+  async function traceMatch(obsSku, candidateEntries, options = {}) {
+    return fetchJson("/api/trace", {
+      ...options,
+      method: "POST",
+      body: {
+        obs_sku: String(obsSku ?? "").trim(),
+        candidate_entries: (candidateEntries || [])
+          .map((entry) => String(entry ?? "").trim())
+          .filter(Boolean),
+      },
+    });
+  }
+
   global.OpmPartsMatchClient = {
     formatApiError,
+    fetchJson,
     getPartsMatchBaseUrl,
+    getCatalogLifecycle,
+    getCatalogEntries,
+    decodePart,
     matchPart,
+    traceMatch,
     workspaceId,
   };
 })(window);

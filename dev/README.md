@@ -5,9 +5,9 @@ This folder is the **development** build. **Production** lives in `../prod/`.
 | | Production (`prod/`) | Dev (`dev/`) |
 |--|----------------------|--------------|
 | **Branch** | `master` / `main` (GitHub Pages) | Same repo, `dev/` folder |
-| **OPM tool** | GC Match `recommend_from_ticket` | Parts Match `POST /api/match` |
-| **Input** | Part number or free-text request | Part number only |
-| **Draft email** | Yes | No |
+| **OPM tool** | Parts Match `POST /api/match` | Parts Match `POST /api/match` |
+| **UI** | Same features; no Dev badge | Same features; Dev badge in header |
+| **Input** | Part number only | Part number only |
 
 ## Local
 

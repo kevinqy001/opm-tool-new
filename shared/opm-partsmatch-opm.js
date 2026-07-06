@@ -28,6 +28,46 @@
     return `${Math.round(n)}%`;
   }
 
+  function scoreToPercent(score) {
+    if (score == null || score === "") return null;
+    const n = Number(score);
+    if (Number.isNaN(n)) return null;
+    if (n <= 1) return Math.round(n * 100);
+    return Math.round(n);
+  }
+
+  function matchScoreColor(percent) {
+    if (percent == null) return null;
+    const p = Math.max(0, Math.min(100, percent));
+
+    // Parts Match scores cluster high — compress the scale:
+    // <50 red, ~50 orange, ~75+ yellow, 90+ green
+    let hue;
+    if (p < 50) {
+      hue = 0;
+    } else if (p < 75) {
+      hue = 28 + ((p - 50) / 25) * 20;
+    } else if (p < 90) {
+      hue = 48 + ((p - 75) / 15) * 42;
+    } else {
+      hue = 90 + ((p - 90) / 10) * 30;
+    }
+
+    return `hsl(${Math.round(hue)}, 72%, 38%)`;
+  }
+
+  function renderCardScore(score) {
+    const label = formatScore(score);
+    const pct = scoreToPercent(score);
+    const color = matchScoreColor(pct);
+
+    if (!color) {
+      return `<span class="opm-rec-card__score opm-rec-card__score--na" aria-label="Match score">${escapeHtml(label)}</span>`;
+    }
+
+    return `<span class="opm-rec-card__score opm-rec-card__score--graded" style="--opm-score-color:${color}" aria-label="Match score ${pct}%">${escapeHtml(label)}</span>`;
+  }
+
   function formatAttrValue(attr) {
     if (!attr || attr.value === undefined || attr.value === null) return "—";
     const v = attr.value;
@@ -106,10 +146,27 @@
     );
   }
 
+  function getEncodePositions(trace, candEntry) {
+    const enc = trace?.encode;
+    if (!enc) return [];
+    if (enc[candEntry]?.positions) return enc[candEntry].positions;
+    const keys = Object.keys(enc);
+    if (keys.length === 1 && enc[keys[0]]?.positions) {
+      return enc[keys[0]].positions;
+    }
+    return [];
+  }
+
   function renderSpecComparison(
     data,
     selectedIndex,
-    { specViewLevel = "top10", specViewMode = "table" } = {}
+    {
+      specViewLevel = "top10",
+      specViewMode = "table",
+      trace = null,
+      traceLoading = false,
+      traceError = null,
+    } = {}
   ) {
     const result = data.results?.[selectedIndex];
     const visibleItems = getBreakdownItems(data, selectedIndex);
@@ -162,10 +219,25 @@
 
     let body = "";
     if (specViewMode === "graph" && window.OpmPartsMatchGraph) {
-      body = window.OpmPartsMatchGraph.renderGraph(visibleRows, {
-        reqLabel,
-        recLabel,
-      });
+      if (traceLoading) {
+        body =
+          '<p class="opm-rec__muted opm-match-graph__status">Loading trace…</p>';
+      } else if (traceError) {
+        body = `<p class="opm-rec__muted opm-match-graph__status opm-match-graph__status--error">${escapeHtml(traceError)}</p>`;
+      } else if (!trace) {
+        body =
+          '<p class="opm-rec__muted opm-match-graph__status">Trace data unavailable.</p>';
+      } else {
+        const candEntry = result?.entry || result?.sku || "";
+        body = window.OpmPartsMatchGraph.renderGraph({
+          breakdown: visibleRows,
+          decodePositions: trace.decode?.positions || [],
+          encodePositions: getEncodePositions(trace, candEntry),
+          obsEntry: trace.obs_entry || data.obs_entry || "",
+          candEntry,
+          matchMode: data.match_mode || "sku",
+        });
+      }
     } else {
       body = renderComparisonTableBody(visibleRows, reqLabel, recLabel);
     }
@@ -218,7 +290,13 @@
   }
 
   function renderResults(data, selectedIndex, partNumber, options = {}) {
-    const { specViewLevel = "top10", specViewMode = "table" } = options;
+    const {
+      specViewLevel = "top10",
+      specViewMode = "table",
+      trace = null,
+      traceLoading = false,
+      traceError = null,
+    } = options;
     const results = data.results || [];
     const selected = results[selectedIndex] || results[0];
 
@@ -244,7 +322,7 @@
               ${series}
               ${blocked}
             </span>
-            <span class="opm-rec-card__score" aria-label="Match score">${escapeHtml(formatScore(aggregate))}</span>
+            ${renderCardScore(aggregate)}
           </div>
         </button>`;
       })
@@ -286,7 +364,13 @@
         ${
           selected
             ? `<h3 class="opm-rec__subtitle">Specification comparison</h3>
-        ${renderSpecComparison(data, selectedIndex, { specViewLevel, specViewMode })}`
+        ${renderSpecComparison(data, selectedIndex, {
+          specViewLevel,
+          specViewMode,
+          trace,
+          traceLoading,
+          traceError,
+        })}`
             : ""
         }
       </section>
@@ -360,6 +444,53 @@
     let specViewLevel = "top10";
     let specViewMode = "table";
     let loadingTimer = null;
+    const traceCache = {};
+    let traceLoading = false;
+    let traceError = null;
+
+    function traceCacheKey() {
+      if (!lastData) return "";
+      const result = lastData.results?.[selectedIndex];
+      const cand = result?.entry || result?.sku || "";
+      const obs = lastData.obs_sku || lastPartNumber;
+      return `${obs}|${cand}`;
+    }
+
+    function getCachedTrace() {
+      return traceCache[traceCacheKey()] || null;
+    }
+
+    async function loadTraceIfNeeded() {
+      const key = traceCacheKey();
+      if (!key || traceCache[key]) return traceCache[key];
+
+      const result = lastData.results?.[selectedIndex];
+      const candEntry = result?.entry || result?.sku;
+      const obsSku = lastData.obs_sku || lastPartNumber;
+
+      traceLoading = true;
+      traceError = null;
+
+      try {
+        const res = await window.OpmPartsMatchClient.traceMatch(obsSku, [
+          candEntry,
+        ]);
+        if (!res.ok) {
+          traceError = window.OpmPartsMatchClient.formatApiError(res);
+          return null;
+        }
+        traceCache[key] = res.data;
+        return res.data;
+      } catch (err) {
+        traceError =
+          err?.message === "Failed to fetch"
+            ? "Could not load trace data. Ensure python opm-dev-server.py is running."
+            : `Trace error: ${err.message}`;
+        return null;
+      } finally {
+        traceLoading = false;
+      }
+    }
 
     function paintResults() {
       if (!lastData) return;
@@ -367,7 +498,13 @@
         lastData,
         selectedIndex,
         lastPartNumber,
-        { specViewLevel, specViewMode }
+        {
+          specViewLevel,
+          specViewMode,
+          trace: getCachedTrace(),
+          traceLoading,
+          traceError,
+        }
       );
       bindResultInteractions();
     }
@@ -427,8 +564,13 @@
 
       resultsRoot
         .querySelector("#opm-spec-view-toggle")
-        ?.addEventListener("click", () => {
-          specViewMode = specViewMode === "table" ? "graph" : "table";
+        ?.addEventListener("click", async () => {
+          const nextMode = specViewMode === "table" ? "graph" : "table";
+          specViewMode = nextMode;
+          if (nextMode === "graph") {
+            paintResults();
+            await loadTraceIfNeeded();
+          }
           paintResults();
         });
 
@@ -473,6 +615,8 @@
       setLoading(true);
       resultsRoot.innerHTML = "";
       lastPartNumber = partNumber;
+      Object.keys(traceCache).forEach((k) => delete traceCache[k]);
+      traceError = null;
 
       try {
         const res = await window.OpmPartsMatchClient.matchPart(partNumber, {
@@ -501,6 +645,7 @@
             selectedIndex = 0;
             specViewLevel = "top10";
             specViewMode = "table";
+            window.OpmRecentQueries?.add(partNumber, { response: body });
             paintResults();
           }
           return;
@@ -510,6 +655,7 @@
         selectedIndex = 0;
         specViewLevel = "top10";
         specViewMode = "table";
+        window.OpmRecentQueries?.add(partNumber, { response: body });
         paintResults();
       } catch (err) {
         console.error(err);

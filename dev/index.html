@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/opm-shared.css?v=3" />
+  <link rel="stylesheet" href="../shared/opm-shared.css?v=5" />
   <link rel="stylesheet" href="dev.css?v=3" />
 </head>
 <body class="opm-app" data-opm-page="dev-opm">
@@ -43,22 +43,13 @@
           Obsolete Part Matching
           <span class="opm-env-badge opm-env-badge--dev">Dev</span>
         </h1>
-        <div class="opm-header__contact">
-          <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
-          <span>Call us at +1-800-378-1600</span>
-        </div>
       </header>
 
       <main class="opm-content">
-        <p class="opm-dev-note">
-          Development build using the Parts Match algorithm (part number only).
-          Production site: <a href="../index.html">../index.html</a> (GC Match, unchanged).
-        </p>
-
         <section class="opm-panel" aria-label="Get recommendation">
           <p class="opm-panel__hint">
             Enter an obsolete part number. For example:
-            <strong>2671001wb111kcd</strong>
+            <strong>N4100</strong>
           </p>
           <form id="opm-main-form" class="opm-search-row" action="#" method="post">
             <label for="opm-part-input" class="visually-hidden">Part number</label>
@@ -67,7 +58,7 @@
               class="opm-input"
               type="text"
               name="partNumber"
-              placeholder="e.g. 2671001wb111kcd"
+              placeholder="e.g. N4100"
               autocomplete="off"
               spellcheck="false"
             />
@@ -98,8 +89,9 @@
   </div>
 
   <script src="../shared/opm-config.js"></script>
+  <script src="../shared/opm-recent-queries.js?v=5"></script>
   <script src="../shared/opm-partsmatch-client.js"></script>
-  <script src="../shared/opm-partsmatch-graph.js?v=3"></script>
-  <script src="../shared/opm-partsmatch-opm.js?v=3"></script>
+  <script src="../shared/opm-partsmatch-graph.js?v=4"></script>
+  <script src="../shared/opm-partsmatch-opm.js?v=7"></script>
 </body>
 </html>

@@ -856,6 +856,10 @@ body.opm-app {
   overflow: hidden;
 }
 
+.opm-results-header.opm-results-header--dated {
+  grid-template-columns: 120px 1fr 1.4fr;
+}
+
 .opm-results-header__col {
   padding: 14px 16px;
   text-align: center;
@@ -951,6 +955,17 @@ body.opm-app {
   transition: background 0.15s ease;
 }
 
+.opm-results-body--dated .opm-draft-row {
+  grid-template-columns: 120px 1fr 1.4fr;
+}
+
+.opm-draft-row__cell--date {
+  border-right: 1px solid var(--opm-border);
+  color: var(--opm-text-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
 .opm-draft-row:hover {
   background: rgba(99, 102, 241, 0.03);
 }
@@ -972,6 +987,36 @@ body.opm-app {
 .opm-draft-row__cell--recommended {
   color: var(--opm-text);
   font-weight: 500;
+}
+
+.opm-history-rec-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.opm-history-rec {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.opm-history-rec__score {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.35;
+  vertical-align: middle;
+}
+
+.opm-draft-row__cell--recommended .opm-history-rec-list {
+  width: 100%;
 }
 
 .opm-table {

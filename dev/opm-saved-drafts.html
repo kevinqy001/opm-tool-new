@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../shared/opm-shared.css?v=2" />
+  <link rel="stylesheet" href="../shared/opm-shared.css?v=5" />
   <link rel="stylesheet" href="dev.css?v=2" />
 </head>
 <body class="opm-app" data-opm-page="saved-drafts">
@@ -37,10 +37,6 @@
           Obsolete Part Matching
           <span class="opm-env-badge opm-env-badge--dev">Dev</span>
         </h1>
-        <div class="opm-header__contact">
-          <span class="opm-header__phone-icon" aria-hidden="true">&#9742;</span>
-          <span>Call us at +1-800-378-1600</span>
-        </div>
       </header>
 
       <main class="opm-content">
@@ -68,13 +64,16 @@
             <div id="opm-recent-queries-list" class="opm-recent-queries__list" role="list"></div>
           </div>
 
-          <div class="opm-results-header">
+          <div id="saved-drafts-alert" class="opm-alert" hidden role="alert"></div>
+
+          <div class="opm-results-header opm-results-header--dated">
+            <div class="opm-results-header__col">Date</div>
             <div class="opm-results-header__col">Requested</div>
             <div class="opm-results-header__col">Recommended</div>
           </div>
 
-          <div class="opm-results-body" aria-label="Search history results">
-            <p class="opm-saved__empty">Search history from OPM will appear here. Enter text and click Search to filter by Requested part number.</p>
+          <div class="opm-results-body opm-results-body--dated" aria-label="Search history results">
+            <p class="opm-saved__empty">Search history from OPM will appear here. Enter a part number and click Search to fetch recommendations.</p>
           </div>
 
           <nav class="opm-pagination" aria-label="Draft results pagination">
@@ -86,7 +85,9 @@
       </main>
     </div>
   </div>
-  <script src="../shared/opm-recent-queries.js"></script>
-  <script src="../shared/opm-saved-drafts.js"></script>
+  <script src="../shared/opm-config.js"></script>
+  <script src="../shared/opm-recent-queries.js?v=5"></script>
+  <script src="../shared/opm-partsmatch-client.js"></script>
+  <script src="../shared/opm-saved-drafts.js?v=7"></script>
 </body>
 </html>
